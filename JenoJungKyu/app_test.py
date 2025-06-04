@@ -1,431 +1,342 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+import joblib
+import pickle  # ← 이 줄을 위로 옮김
+from datetime import datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error
-import warnings
-warnings.filterwarnings('ignore')
+from streamlit_extras.let_it_rain import rain
 
-# 페이지 설정
+
+# Page configuration
 st.set_page_config(
-    page_title="🛒 Olist 전자상거래 가격 분석",
-    page_icon="🛒",
+    page_title="데이터 사피엔스",
+    page_icon="🧊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Report a bug': "https://www.extremelycoolapp.com/bug",
+        'About': "# 이것은 헤더입니다. 이것은 *매우* 멋진 앱입니다!"
+    }
 )
 
-# 메인 타이틀
-st.title("🛒 Olist 전자상거래 가격 분석 대시보드")
-st.markdown("---")
-
-# 사이드바 - 데이터 업로드 및 설정
-st.sidebar.header("📊 데이터 및 설정")
-
-# 샘플 데이터 생성 함수 (실제 데이터가 없을 때 사용)
-@st.cache_data
-def generate_sample_data():
-    """실제 Olist 데이터가 없을 때 샘플 데이터 생성"""
-    np.random.seed(42)
-    n_samples = 10000
-
-    # 고객 데이터
-    customers_df = pd.DataFrame({
-        'customer_id': [f'cust_{i}' for i in range(2000)],
-        'customer_state': np.random.choice(['SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'PE', 'GO', 'CE'], 2000)
-    })
-
-    # 주문 데이터
-    orders_df = pd.DataFrame({
-        'order_id': [f'order_{i}' for i in range(n_samples)],
-        'customer_id': np.random.choice(customers_df['customer_id'], n_samples),
-        'order_purchase_timestamp': pd.date_range('2017-01-01', '2018-12-31', periods=n_samples),
-        'order_delivered_customer_date': pd.NaT
-    })
-
-    # 배송 시간 추가
-    delivery_days = np.random.normal(15, 5, n_samples)
-    delivery_days = np.clip(delivery_days, 3, 60)  # 3~60일 사이
-    orders_df['order_delivered_customer_date'] = orders_df['order_purchase_timestamp'] + pd.to_timedelta(delivery_days, unit='D')
-
-    # 상품 카테고리
-    categories = ['electronics', 'furniture', 'home_appliances', 'sports_leisure', 'computers',
-                 'health_beauty', 'watches_gifts', 'toys', 'fashion_bags', 'auto']
-
-    # 주문 아이템 데이터
-    order_items_df = pd.DataFrame({
-        'order_id': np.random.choice(orders_df['order_id'], n_samples),
-        'product_id': [f'prod_{i}' for i in range(n_samples)],
-        'price': np.random.lognormal(3, 1, n_samples),  # 로그정규분포로 가격 생성
-        'freight_value': np.random.gamma(2, 8, n_samples)  # 감마분포로 배송비 생성
-    })
-
-    # 상품 데이터
-    products_df = pd.DataFrame({
-        'product_id': order_items_df['product_id'].unique(),
-        'product_category_name': np.random.choice(categories, len(order_items_df['product_id'].unique()))
-    })
-
-    # 카테고리 번역
-    categories_df = pd.DataFrame({
-        'product_category_name': categories,
-        'product_category_name_english': categories
-    })
-
-    # 리뷰 데이터
-    order_reviews_df = pd.DataFrame({
-        'order_id': order_items_df['order_id'],
-        'review_score': np.random.choice([1, 2, 3, 4, 5], n_samples, p=[0.05, 0.1, 0.15, 0.3, 0.4])
-    })
-
-    return customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df
-
-# 데이터 로드 또는 생성
-@st.cache_data
-def load_data():
+# Load the best model from GridSearchCV
+@st.cache_resource
+def load_model():
     try:
-        # 실제 데이터 파일들을 로드 시도
-        customers_df = pd.read_csv('data/olist_customers_dataset.csv')
-        orders_df = pd.read_csv('data/olist_orders_dataset.csv')
-        order_items_df = pd.read_csv('data/olist_order_items_dataset.csv')
-        products_df = pd.read_csv('data/olist_products_dataset.csv')
-        categories_df = pd.read_csv('data/product_category_name_translation.csv')
-        order_reviews_df = pd.read_csv('data/olist_order_reviews_dataset.csv')
-        st.sidebar.success("✅ 실제 Olist 데이터를 로드했습니다!")
-    except:
-        # 파일이 없을 경우 샘플 데이터 생성
-        customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df = generate_sample_data()
-        st.sidebar.info("ℹ️ 샘플 데이터를 사용하고 있습니다.")
+        with open('models/best_model.pkl', 'rb') as f:
+            data = pickle.load(f)
 
-    return customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df
+        # data가 튜플인지 확인 후 처리
+        if isinstance(data, tuple):
+            # GridSearchCV 튜플 구조에 맞게 조정 필요
+            # 예를 들어 첫번째가 GridSearchCV 객체라면
+            gs = data[0]
+            model = getattr(gs, 'best_estimator_', gs)  # best_estimator_ 있으면 가져오기, 없으면 gs 사용
+        else:
+            model = data
 
-# 데이터 전처리
-@st.cache_data
-def preprocess_data(customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df):
-    # 가격 정보가 포함된 DataFrame 결합
-    price_df = (
-        order_items_df
-        .merge(products_df, on='product_id', how='left')
-        .merge(categories_df, on='product_category_name', how='left')
-    )
+        return model
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
+        return None
 
-    # 날짜 변환 및 배송 시간 계산
-    orders_df['order_purchase_timestamp'] = pd.to_datetime(orders_df['order_purchase_timestamp'])
-    orders_df['order_delivered_customer_date'] = pd.to_datetime(orders_df['order_delivered_customer_date'])
-    orders_df['shipping_time'] = (orders_df['order_delivered_customer_date'] - orders_df['order_purchase_timestamp']).dt.days
 
-    # 전체 데이터 병합
-    merged = pd.merge(order_items_df, order_reviews_df, on='order_id', how='inner')
-    merged = pd.merge(merged, orders_df[['order_id', 'customer_id', 'shipping_time', 'order_purchase_timestamp']], on='order_id', how='left')
-    merged = pd.merge(merged, customers_df[['customer_id', 'customer_state']], on='customer_id', how='left')
 
-    # 월별 데이터 추가
-    merged['order_month'] = pd.to_datetime(merged['order_purchase_timestamp']).dt.to_period('M')
+# 로딩된 모델 사용
+model = load_model()
 
-    return price_df, merged
 
-# 데이터 로드
-customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df = load_data()
-price_df, merged = preprocess_data(customers_df, orders_df, order_items_df, products_df, categories_df, order_reviews_df)
+# Expected feature columns based on your model training
 
-# 사이드바 필터
-st.sidebar.subheader("🔍 필터 옵션")
-price_range = st.sidebar.slider(
-    "가격 범위 (BRL)",
-    0, int(price_df['price'].max()),
-    (0, 1000),
-    step=10
-)
+FEATURE_COLUMNS = [
+    'Frequency',
+    'Monetary',
+    'delay_days',
+    'total_days',
+    'approval_days',
+    'review_flag',
+    'review_length',
+    'order_status_binary',
+    'category_num',
+]
 
-# 분석 섹션 선택
-analysis_option = st.sidebar.selectbox(
-    "분석 섹션 선택",
-    ["📈 가격 분포 분석", "🏆 카테고리별 분석", "🚚 가격-배송비 관계", "⭐ 리뷰-가격 관계", "🗺️ 지역별 분석", "📅 시계열 분석", "🤖 배송시간 예측"]
-)
+# Custom CSS
+st.markdown("""
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: white;
+    }
+    .metric-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #667eea;
+    }
+    .prediction-section {
+        background: #f8f9fa;
+        padding: 2rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .sidebar-section {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# 메인 컨텐츠
-if analysis_option == "📈 가격 분포 분석":
-    st.header("📈 상품 가격 분포 분석")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # 가격 분포 히스토그램
-        filtered_price = price_df[(price_df['price'] >= price_range[0]) & (price_df['price'] <= price_range[1])]
-
-        fig = px.histogram(
-            filtered_price,
-            x='price',
-            nbins=50,
-            title="상품 가격 분포",
-            labels={'price': '가격 (BRL)', 'count': '상품 수'}
-        )
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        # 기본 통계
-        st.subheader("📊 기본 통계")
-        stats = filtered_price['price'].describe()
-
-        col2_1, col2_2 = st.columns(2)
-        with col2_1:
-            st.metric("평균 가격", f"{stats['mean']:.2f} BRL")
-            st.metric("중앙값", f"{stats['50%']:.2f} BRL")
-        with col2_2:
-            st.metric("최고가", f"{stats['max']:.2f} BRL")
-            st.metric("최저가", f"{stats['min']:.2f} BRL")
-
-elif analysis_option == "🏆 카테고리별 분석":
-    st.header("🏆 카테고리별 가격 분석")
-
-    # 카테고리별 평균 가격 TOP 10
-    category_price = (
-        price_df.groupby('product_category_name_english')['price']
-        .agg(['mean', 'count', 'std'])
-        .sort_values('mean', ascending=False)
-        .head(10)
-        .reset_index()
-    )
-
-    fig = px.bar(
-        category_price,
-        x='mean',
-        y='product_category_name_english',
-        orientation='h',
-        title="카테고리별 평균 가격 TOP 10",
-        labels={'mean': '평균 가격 (BRL)', 'product_category_name_english': '카테고리'}
-    )
-    fig.update_layout(height=500)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # 카테고리별 상세 통계
-    st.subheader("📋 카테고리별 상세 통계")
-    st.dataframe(category_price.round(2))
-
-elif analysis_option == "🚚 가격-배송비 관계":
-    st.header("🚚 가격과 배송비 관계 분석")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # 산점도
-        filtered_data = price_df[(price_df['price'] <= 1000) & (price_df['freight_value'] <= 75)]
-
-        fig = px.scatter(
-            filtered_data.sample(min(5000, len(filtered_data))),  # 성능을 위해 샘플링
-            x='price',
-            y='freight_value',
-            opacity=0.6,
-            title="가격 vs 배송비",
-            labels={'price': '가격 (BRL)', 'freight_value': '배송비 (BRL)'}
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        # 상관계수
-        corr = price_df[['price', 'freight_value']].corr().iloc[0,1]
-        st.metric("상관계수", f"{corr:.3f}")
-
-        # 가격 구간별 평균 배송비
-        price_df['price_bin'] = pd.cut(price_df['price'], 10)
-        avg_freight = price_df.groupby('price_bin')['freight_value'].mean().reset_index()
-        avg_freight['price_bin_str'] = avg_freight['price_bin'].astype(str)
-
-        fig2 = px.line(
-            avg_freight,
-            x='price_bin_str',
-            y='freight_value',
-            title="가격 구간별 평균 배송비"
-        )
-        fig2.update_xaxes(tickangle=45)
-        st.plotly_chart(fig2, use_container_width=True)
-
-elif analysis_option == "⭐ 리뷰-가격 관계":
-    st.header("⭐ 리뷰 점수와 가격 관계")
-
-    # 가격대별 평균 리뷰 점수
-    merged_clean = merged.dropna(subset=['price', 'review_score'])
-    merged_clean['price_bin'] = pd.qcut(merged_clean['price'], 10, duplicates='drop')
-
-    avg_score_by_price = merged_clean.groupby('price_bin')['review_score'].mean().reset_index()
-    avg_score_by_price['price_range'] = avg_score_by_price['price_bin'].astype(str)
-
-    fig = px.line(
-        avg_score_by_price,
-        x='price_range',
-        y='review_score',
-        title="가격 구간별 평균 리뷰 점수",
-        markers=True
-    )
-    fig.update_xaxes(tickangle=45)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # 리뷰 점수별 가격 박스플롯
-    fig2 = px.box(
-        merged_clean,
-        x='review_score',
-        y='price',
-        title="리뷰 점수별 가격 분포"
-    )
-    st.plotly_chart(fig2, use_container_width=True)
-
-elif analysis_option == "🗺️ 지역별 분석":
-    st.header("🗺️ 지역별 가격 분석")
-
-    # 지역별 평균 가격
-    state_price = merged.groupby('customer_state').agg({
-        'price': ['mean', 'count', 'std']
-    }).round(2)
-    state_price.columns = ['평균_가격', '주문_수', '표준편차']
-    state_price = state_price.reset_index().sort_values('평균_가격', ascending=False)
-
-    fig = px.bar(
-        state_price,
-        x='customer_state',
-        y='평균_가격',
-        title="지역별 평균 상품 가격",
-        labels={'customer_state': '지역 (State)', '평균_가격': '평균 가격 (BRL)'}
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # 지역별 상세 통계
-    st.subheader("📋 지역별 상세 통계")
-    st.dataframe(state_price)
-
-elif analysis_option == "📅 시계열 분석":
-    st.header("📅 월별 가격 변화")
-
-    # 월별 평균 가격
-    month_avg_price = merged.groupby('order_month')['price'].mean().reset_index()
-    month_avg_price['order_month_str'] = month_avg_price['order_month'].astype(str)
-
-    fig = px.line(
-        month_avg_price,
-        x='order_month_str',
-        y='price',
-        title="월별 평균 상품 가격 변화",
-        labels={'order_month_str': '월', 'price': '평균 가격 (BRL)'}
-    )
-    fig.update_xaxes(tickangle=45)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # 월별 주문량
-    month_order_count = merged.groupby('order_month').size().reset_index(name='order_count')
-    month_order_count['order_month_str'] = month_order_count['order_month'].astype(str)
-
-    fig2 = px.bar(
-        month_order_count,
-        x='order_month_str',
-        y='order_count',
-        title="월별 주문 수",
-        labels={'order_month_str': '월', 'order_count': '주문 수'}
-    )
-    fig2.update_xaxes(tickangle=45)
-    st.plotly_chart(fig2, use_container_width=True)
-
-elif analysis_option == "🤖 배송시간 예측":
-    st.header("🤖 머신러닝 배송시간 예측")
-
-    # 데이터 준비
-    ml_data = merged[['price', 'freight_value', 'shipping_time']].dropna()
-
-    if len(ml_data) > 100:  # 충분한 데이터가 있는 경우
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.subheader("🎯 예측 입력")
-            input_price = st.number_input("상품 가격 (BRL)", min_value=0.0, value=100.0, step=10.0)
-            input_freight = st.number_input("배송비 (BRL)", min_value=0.0, value=15.0, step=1.0)
-
-            if st.button("배송시간 예측"):
-                # 모델 학습
-                X = ml_data[['price', 'freight_value']]
-                y = ml_data['shipping_time']
-
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-                model = RandomForestRegressor(n_estimators=100, random_state=42)
-                model.fit(X_train, y_train)
-
-                # 예측
-                prediction = model.predict([[input_price, input_freight]])[0]
-
-                # 모델 성능
-                y_pred = model.predict(X_test)
-                mae = mean_absolute_error(y_test, y_pred)
-
-                st.success(f"예상 배송시간: **{prediction:.1f}일**")
-                st.info(f"모델 정확도 (MAE): {mae:.2f}일")
-
-        with col2:
-            st.subheader("📊 특성 중요도")
-            # 특성 중요도 시각화
-            X = ml_data[['price', 'freight_value']]
-            y = ml_data['shipping_time']
-            model = RandomForestRegressor(n_estimators=100, random_state=42)
-            model.fit(X, y)
-
-            importance_df = pd.DataFrame({
-                'feature': ['가격', '배송비'],
-                'importance': model.feature_importances_
-            })
-
-            fig = px.bar(
-                importance_df,
-                x='importance',
-                y='feature',
-                orientation='h',
-                title="배송시간 예측 특성 중요도"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        # 실제 vs 예측 산점도
-        st.subheader("🎯 실제 vs 예측 배송시간")
-        X = ml_data[['price', 'freight_value']]
-        y = ml_data['shipping_time']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-
-        comparison_df = pd.DataFrame({
-            'actual': y_test,
-            'predicted': y_pred
-        })
-
-        fig = px.scatter(
-            comparison_df,
-            x='actual',
-            y='predicted',
-            title="실제 vs 예측 배송시간"
-        )
-        fig.add_shape(
-            type="line",
-            x0=comparison_df['actual'].min(),
-            y0=comparison_df['actual'].min(),
-            x1=comparison_df['actual'].max(),
-            y1=comparison_df['actual'].max(),
-            line=dict(dash="dash", color="red")
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    else:
-        st.warning("머신러닝 모델 학습을 위한 충분한 데이터가 없습니다.")
-
-# 푸터
-st.markdown("---")
+# Header
 st.markdown(
     """
-    <div style='text-align: center'>
-        <p>🛒 Olist 전자상거래 가격 분석 대시보드 | Built with Streamlit</p>
+    <div style="display: flex; justify-content: center;">
+        <img src="https://i.hizliresim.com/c3v6sx3.png" alt="Olist Logo" width="200"/>
     </div>
     """,
     unsafe_allow_html=True
 )
+
+st.markdown("""
+<div class="main-header">
+    <h1>🛒 Olist 이커머스 분석 대시보드</h1>
+    <p>브라질 이커머스 고객 만족도 및 비즈니스 인텔리전스</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Sidebar
+with st.sidebar:
+    st.markdown("### 📊 대시보드 네비게이션")
+    dashboard_mode = st.selectbox(
+        "대시보드 모드 선택",
+        ["개요", "예측", "분석", "성능 지표"]
+    )
+
+    st.markdown("---")
+    st.markdown("### 🎯 모델 성능")
+    st.metric("정확도", "0.881", delta="0.04")
+    st.metric("F1 점수", "0.933", delta="0.02")
+    st.metric("ROC AUC", "0.794", delta="0.228")
+
+# Main Dashboard Content
+if dashboard_mode == "개요":
+    st.markdown(
+        """
+        ## 프로젝트 개요:
+        - "데이터 사피엔스" 대시보드는 2016년부터 2018년까지 100,000개의 주문을 포함하는 Olist의 이커머스 주문 공개 데이터셋에서 도출한 인사이트를 보여줍니다.
+        - Catboost와 로지스틱 회귀 등의 머신러닝 모델을 활용하여 주문 상태, 체크아웃, 고객 리뷰 등 고객 여정의 다양한 측면에 대한 귀중한 정보를 제공합니다.
+        - 데이터셋은 Olist에 제품을 등록한 판매자들의 세부 정보와 고객 행동 및 인구 통계 데이터를 포함합니다.
+
+        ---
+
+        ### 사용된 모델:
+        1. **리뷰 점수 예측:**
+           - 모델: 로지스틱 회귀
+           - 설명: 다양한 요인을 기반으로 고객 리뷰 점수를 예측합니다.
+
+        2. **배송 시간 예측:**
+           - 모델: Catboost
+           - 설명: Olist에서 주문한 상품의 배송 시간을 예측합니다.
+
+        ---
+
+        ### 모델 평가:
+        - **리뷰 점수 예측:**
+          - 평가 지표: 정확도, ROC Auc, F1 점수
+          - 성능: 정확도 0.881%, ROC Auc 점수 0.794, F1 점수 0.933%를 달성했습니다.
+
+        - **배송 시간 예측:**
+          - 평가 지표: RMSE, R2 점수
+          - 성능: RMSE 1.176, R2 점수 0.983을 달성했습니다.
+
+        ---
+        """, unsafe_allow_html=True)
+
+elif dashboard_mode == "예측":
+    st.markdown("<h3 style='text-align: center;'>📊 모델 성능 지표</h3>", unsafe_allow_html=True)
+
+    # 가운데 정렬을 위한 여백 + 3개의 컬럼
+    col_left, col1, col2, col3, col_right = st.columns([1, 2, 2, 2, 1])  # 좌우 여백 주기
+
+    with col1:
+        st.metric(
+            label="🎯 Accuracy",
+            value="0.881",
+            delta="0.04"
+        )
+
+    with col2:
+        st.metric(
+            label="📊 F1 Score",
+            value="0.933",
+            delta="0.02"
+        )
+
+    with col3:
+        st.metric(
+            label="📈 ROC AUC",
+            value="0.794",
+            delta="0.228"
+        )
+
+    st.markdown("---")
+
+    # Charts Row
+    col1, col2 = st.columns(2)
+
+    # 모델 불러오기
+    model = load_model()
+
+    with col1:
+        st.subheader("📈 Model Prediction Center")
+
+        if model is None:
+            st.error("Model not loaded. Cannot make predictions.")
+        else:
+            features = ['Frequency', 'Monetary',
+                        'delay_days', 'total_days', 'approval_days',
+                        'review_flag', 'review_length', 'order_status_binary', 'category_num']
+
+            input_values = {}
+            for feature in features:
+                input_values[feature] = st.number_input(f"{feature}", value=0.0)
+
+            if st.button('🔮 Predict'):
+                try:
+                    input_df = pd.DataFrame([input_values], columns=features)
+                    prediction = model.predict(input_df)[0]
+
+                    if prediction == 1:
+                        st.success("🤩 Customer will be SATISFIED!")
+                        st.balloons()
+                    else:
+                        st.error("😡 Customer will be UNSATISFIED")
+
+                    st.metric("Prediction Result", prediction)
+
+                except Exception as e:
+                    st.error(f"Prediction error: {e}")
+
+
+
+elif dashboard_mode == "분석":
+    st.markdown("### 📊 비즈니스 분석")
+
+    tab1, tab2, tab3 = st.tabs(["매출 분석", "지역별 분포", "제품 성과"])
+
+    with tab1:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Sample sales data
+            months = ['1월', '2월', '3월', '4월', '5월', '6월']
+            sales = [45000, 52000, 48000, 61000, 55000, 67000]
+
+            fig = px.bar(x=months, y=sales, title="월별 매출 수익 (R$)")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            # Sample category data
+            categories = ['전자제품', '패션', '홈용품', '스포츠', '도서']
+            values = [25, 35, 20, 15, 5]
+
+            fig = px.pie(values=values, names=categories, title="카테고리별 매출")
+            st.plotly_chart(fig, use_container_width=True)
+
+    with tab2:
+        st.markdown("#### 🗺️ 브라질 주별 매출")
+
+        # Sample geographic data
+        states = ['SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE']
+        sales_by_state = np.random.randint(1000, 15000, len(states))
+
+        fig = px.bar(x=states, y=sales_by_state, title="주별 주문 수")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab3:
+        st.markdown("#### 📦 제품 성과 지표")
+
+        # Sample product data
+        products = ['제품 A', '제품 B', '제품 C', '제품 D', '제품 E']
+        ratings = [4.5, 3.8, 4.2, 4.7, 3.9]
+        sales_vol = [1200, 800, 1500, 900, 1100]
+
+        fig = px.scatter(x=sales_vol, y=ratings, text=products,
+                         title="제품 성과: 매출 vs 평점",
+                         labels={'x': '매출량', 'y': '평균 평점'})
+        fig.update_traces(textposition='top center')
+        st.plotly_chart(fig, use_container_width=True)
+
+elif dashboard_mode == "성능 지표":
+    st.markdown("### 📈 모델 및 비즈니스 성과")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("#### 🎯 모델 지표")
+        metrics_data = {
+            '지표': ['정확도', '정밀도', '재현율', 'F1-점수', 'ROC-AUC'],
+            '점수': [0.881, 0.875, 0.892, 0.933, 0.794]
+        }
+        metrics_df = pd.DataFrame(metrics_data)
+
+        fig = px.bar(metrics_df, x='지표', y='점수',
+                     title="모델 성능 지표",
+                     color='점수', color_continuous_scale='viridis')
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.markdown("#### 📊 비즈니스 KPI")
+
+        # Sample KPI data
+        kpi_data = {
+            'KPI': ['고객 유지율', '주문 이행률', '정시 배송률', '반품률'],
+            '현재': [85, 92, 78, 12],
+            '목표': [90, 95, 85, 8]
+        }
+        kpi_df = pd.DataFrame(kpi_data)
+
+        fig = px.bar(kpi_df, x='KPI', y=['현재', '목표'],
+                     title="KPI 성과 vs 목표",
+                     barmode='group')
+        st.plotly_chart(fig, use_container_width=True)
+
+    # Detailed metrics table
+    st.markdown("#### 📋 상세 성과 보고서")
+
+    performance_data = {
+        '카테고리': ['고객 만족도', '배송 성과', '매출 성장률', '제품 품질'],
+        '이번 달': ['88.1%', '78.5%', '12.3%', '4.2/5.0'],
+        '지난 달': ['84.2%', '76.1%', '8.7%', '4.0/5.0'],
+        '변화': ['+3.9%', '+2.4%', '+3.6%', '+0.2'],
+        '상태': ['✅ 좋음', '⚠️ 개선 필요', '✅ 우수', '✅ 좋음']
+    }
+
+    performance_df = pd.DataFrame(performance_data)
+    st.dataframe(performance_df, use_container_width=True)
+
+# Footer
+st.markdown("---")
+html_footer = """
+<div style="text-align: center; padding: 2rem; background: #f8f9fa; border-radius: 8px; margin-top: 2rem;">
+    <p style="color: #666; font-size: 14px;">
+        데이터 사피엔스 © 2024 | Olist 이커머스 분석 대시보드
+    </p>
+    <p style="color: #888; font-size: 12px;">
+        Streamlit & Best Model로 구축됨 | 브라질 이커머스 데이터 기반
+    </p>
+</div>
+"""
+
+st.markdown(html_footer, unsafe_allow_html=True)
