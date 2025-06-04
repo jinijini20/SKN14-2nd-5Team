@@ -17,14 +17,14 @@ st.set_page_config(
 )
 
 
-# Load the XGBoost model
+# Load the best model
 @st.cache_resource
 def load_model():
     try:
         model = joblib.load("models/best_model.pkl")
         return model
     except FileNotFoundError:
-        st.error("Model file not found. Please check the path: models/xgboost_model.pkl")
+        st.error("Model file not found. Please check the path: models/best_model.pkl")
         return None
 
 
@@ -74,7 +74,6 @@ st.markdown("""
 
 # Sidebar
 with st.sidebar:
-
     st.markdown("### 📊 Dashboard Navigation")
     dashboard_mode = st.selectbox(
         "Select Dashboard Mode",
@@ -90,7 +89,7 @@ with st.sidebar:
 # Main Dashboard Content
 if dashboard_mode == "Overview":
     # Key Metrics Row
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
     with col1:
         st.metric(
@@ -120,24 +119,100 @@ if dashboard_mode == "Overview":
             delta="-2.1 days"
         )
 
+    with col5:
+        st.metric(
+            label="🎯 Accuracy",
+            value="0.881",
+            delta="0.04"
+        )
+
+    with col6:
+        st.metric(
+            label="📊 F1 Score",
+            value="0.933",
+            delta="0.02"
+        )
+
+    with col7:
+        st.metric(
+            label="📈 ROC AUC",
+            value="0.794",
+            delta="0.228"
+        )
+
     st.markdown("---")
 
     # Charts Row
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("📈 Order Trends")
-        # Sample data for demonstration
-        dates = pd.date_range('2017-01-01', '2018-08-31', freq='M')
-        orders = np.random.randint(3000, 8000, len(dates))
+        st.subheader("📈 Model Prediction Center")
 
-        fig = px.line(
-            x=dates, y=orders,
-            title="Monthly Order Volume",
-            labels={'x': 'Month', 'y': 'Orders'}
-        )
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
+        if model is None:
+            st.error("Model not loaded. Cannot make predictions.")
+        else:
+            # Prediction form in compact layout
+            with st.expander("🔧 Hyperparameter Filters", expanded=True):
+                col_p1, col_p2 = st.columns(2)
+
+                with col_p1:
+                    price = st.number_input('Price (R$)', min_value=0.0, value=50.0, key="overview_price")
+                    freight_value = st.number_input('Shipping (R$)', min_value=0.0, value=15.0, key="overview_freight")
+                    quantity = st.number_input('Quantity', min_value=1, max_value=5, value=1, key="overview_qty")
+                    payment_installments = st.slider('Installments', 1, 24, 1, key="overview_install")
+
+                with col_p2:
+                    payment_type = st.selectbox("Payment", ["Credit Card", "Debit Card", "Coupon"],
+                                                key="overview_payment")
+                    seller_category = st.selectbox('Seller Type',
+                                                   ['Verified Seller', 'Successful Seller', 'Unverified Seller'],
+                                                   key="overview_seller")
+                    seller_score = st.slider('Seller Rating', 0, 10, 7, key="overview_rating")
+                    distance = st.slider('Distance (km)', 1, 1000, 100, key="overview_distance")
+
+            # Prediction button and result
+            if st.button('🔮 Predict Satisfaction', type='primary', use_container_width=True, key="overview_predict"):
+                try:
+                    # Process inputs
+                    if seller_category == "Verified Seller":
+                        category_encoded = [1, 0]
+                    elif seller_category == "Successful Seller":
+                        category_encoded = [0, 1]
+                    else:
+                        category_encoded = [0, 0]
+
+                    if payment_type == "Debit Card":
+                        payment_encoded = [1, 0]
+                    elif payment_type == "Credit Card":
+                        payment_encoded = [0, 1]
+                    else:
+                        payment_encoded = [0, 0]
+
+                    payment_value = (price + freight_value) * quantity
+                    wait_encoded = [1, 0, 0, 0]  # Default medium wait time
+
+                    features = [
+                        price, freight_value, payment_installments, payment_value,
+                        seller_score, 0, distance, 0,  # delay_time and discount set to 0
+                        payment_encoded[0], payment_encoded[1],
+                        *wait_encoded, *category_encoded
+                    ]
+
+                    prediction = model.predict([features])[0]
+
+                    if prediction == 1:
+                        st.success("🤩 Customer will be SATISFIED!")
+                        st.balloons()
+                    else:
+                        st.error("😡 Customer will be UNSATISFIED")
+                        rain(emoji="😡", font_size=30, falling_speed=2, animation_length="0.5")
+
+                    # Additional metrics
+                    st.metric("Prediction Confidence", f"{abs(prediction):.0f}")
+                    st.metric("Total Order Value", f"R$ {payment_value:.2f}")
+
+                except Exception as e:
+                    st.error(f"Prediction error: {str(e)}")
 
     with col2:
         st.subheader("🎯 Customer Satisfaction")
@@ -357,3 +432,17 @@ elif dashboard_mode == "Performance Metrics":
     performance_df = pd.DataFrame(performance_data)
     st.dataframe(performance_df, use_container_width=True)
 
+# Footer
+st.markdown("---")
+html_footer = """
+<div style="text-align: center; padding: 2rem; background: #f8f9fa; border-radius: 8px; margin-top: 2rem;">
+    <p style="color: #666; font-size: 14px;">
+        Data Sapiens © 2024 | Olist E-commerce Analytics Dashboard
+    </p>
+    <p style="color: #888; font-size: 12px;">
+        Built with Streamlit & Best Model | Powered by Brazilian E-commerce Data
+    </p>
+</div>
+"""
+
+st.markdown(html_footer, unsafe_allow_html=True)
