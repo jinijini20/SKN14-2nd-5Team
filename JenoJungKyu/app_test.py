@@ -10,7 +10,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from streamlit_extras.let_it_rain import rain
 import altair as alt  # 올바른 방식
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+last_df = pd.read_csv('data/model_df.csv')
+last_df['RFM_score_bin'] = pd.qcut(last_df['RFM_add_score'], q=5, labels=False)
+
+# Windows용 한글 폰트 지정
+plt.rcParams['font.family'] = 'Malgun Gothic'
+
+# 마이너스 기호 정상 표시 (음수 깨짐 방지)
+
+plt.rcParams['axes.unicode_minus'] = False
+
+# delay_days 구간 설정
+last_df['delay_group'] = pd.cut(
+    last_df['delay_days'],
+    bins=[-100, -10, -1, 0, 1, 5, 10, 100],
+    labels=['10일 이상 빠름', '1~9일 빠름', '정시 배송', '1일 지연', '2~5일 지연', '6~10일 지연', '10일 이상 지연']
+)
 
 # Page configuration
 st.set_page_config(
@@ -50,9 +68,6 @@ def load_model():
 
 # 로딩된 모델 사용
 model = load_model()
-
-
-# Expected feature columns based on your model training
 
 FEATURE_COLUMNS = [
     'Frequency',
@@ -100,23 +115,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown(
-    """
-    <div style="display: flex; justify-content: center;">
-        <img src="https://i.hizliresim.com/c3v6sx3.png" alt="Olist Logo" width="200"/>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown("""
-<div class="main-header">
-    <h1>🛒 Olist 이커머스 분석 대시보드</h1>
-    <p>브라질 이커머스 고객 만족도 및 비즈니스 인텔리전스</p>
-</div>
-""", unsafe_allow_html=True)
-
 # Sidebar
 with st.sidebar:
     st.markdown("### 📊 대시보드 네비게이션")
@@ -128,11 +126,28 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 🎯 모델 성능")
     st.metric("정확도", "0.73", delta="0.04")
-    st.metric("F1 점수", "0.55", delta="0.02")
+    st.metric("F1 점수", "0.803", delta="0.02")
     st.metric("ROC AUC", "0.8", delta="0.228")
 
 # Main Dashboard Content
 if dashboard_mode == "개요":
+    # Header
+    st.markdown(
+        """
+        <div style="display: flex; justify-content: center;">
+            <img src="https://i.hizliresim.com/c3v6sx3.png" alt="Olist Logo" width="200"/>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown("""
+    <div class="main-header">
+        <h1>🛒 Olist 이커머스 분석 대시보드</h1>
+        <p>브라질 이커머스 고객 만족도 및 비즈니스 인텔리전스</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown(
         """
         ### 📝 프로젝트 소개
@@ -568,18 +583,242 @@ elif dashboard_mode == "분석":
         st.plotly_chart(fig, use_container_width=True)
 
     with tab3:
-        st.markdown("#### 📦 Product Performance Metrics")
+        # 데이터 불러오기
+        last_df = pd.read_csv('data/model_df.csv')
 
-        # Sample product data
-        products = ['Product A', 'Product B', 'Product C', 'Product D', 'Product E']
-        ratings = [4.5, 3.8, 4.2, 4.7, 3.9]
-        sales_vol = [1200, 800, 1500, 900, 1100]
+        # delay_days 구간 설정
+        last_df['delay_group'] = pd.cut(
+            last_df['delay_days'],
+            bins=[-100, -10, -1, 0, 1, 5, 10, 100],
+            labels=['10일 이상 빠름', '1~9일 빠름', '정시 배송', '1일 지연', '2~5일 지연', '6~10일 지연', '10일 이상 지연']
+        )
 
-        fig = px.scatter(x=sales_vol, y=ratings, text=products,
-                         title="Product Performance: Sales vs Rating",
-                         labels={'x': 'Sales Volume', 'y': 'Average Rating'})
-        fig.update_traces(textposition='top center')
-        st.plotly_chart(fig, use_container_width=True)
+        # RFM_add_score 구간 설정
+        last_df['RFM_score_bin'] = pd.qcut(last_df['RFM_add_score'], q=5, labels=False)
+
+        # 페이지 헤더
+        st.markdown("""
+        <div style="text-align: center; padding: 20px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 10px; margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0; font-size: 2.5em;">📊 고객 만족도 분석 대시보드</h1>
+            <p style="color: white; margin-top: 10px; font-size: 1.2em;">배송 성과와 고객 충성도 인사이트</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 핵심 지표 카드
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            avg_score = last_df['review_score'].mean()
+            st.metric(
+                label="평균 리뷰 점수",
+                value=f"{avg_score:.2f}",
+                delta=f"{avg_score - 3.0:.2f} vs 기준점"
+            )
+
+        with col2:
+            on_time_rate = (last_df['delay_days'] <= 0).mean() * 100
+            st.metric(
+                label="정시 배송률",
+                value=f"{on_time_rate:.1f}%",
+                delta=f"{on_time_rate - 50:.1f}% vs 평균"
+            )
+
+        with col3:
+            avg_response_time = last_df['response_time'].mean()
+            st.metric(
+                label="평균 응답시간",
+                value=f"{avg_response_time:.0f}초",
+                delta=f"{avg_response_time - 60:.0f}초 vs 목표"
+            )
+
+        with col4:
+            high_rfm_rate = (last_df['RFM_score_bin'] >= 3).mean() * 100
+            st.metric(
+                label="고충성 고객 비율",
+                value=f"{high_rfm_rate:.1f}%",
+                delta=f"{high_rfm_rate - 40:.1f}% vs 평균"
+            )
+
+        st.markdown("---")
+
+        # 첫 번째 차트 섹션
+        st.markdown("""
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h2 style="color: #2c3e50; margin-bottom: 15px;">🚚 배송 성과별 고객 만족도 분석</h2>
+            <p style="color: #7f8c8d;">배송 지연 정도에 따른 리뷰 점수 분포를 확인하세요</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 차트 옵션
+        chart_col1, chart_col2 = st.columns([3, 1])
+
+        with chart_col2:
+            st.markdown("#### 차트 설정")
+            show_outliers = st.checkbox("이상치 표시", value=True)
+            color_palette = st.selectbox(
+                "색상 테마",
+                ["Set2", "viridis", "husl", "Set3", "pastel"],
+                index=0
+            )
+            chart_style = st.radio(
+                "차트 스타일",
+                ["박스플롯", "바이올린플롯"],
+                index=0
+            )
+
+        with chart_col1:
+            fig1, ax1 = plt.subplots(figsize=(16, 8))
+
+            if chart_style == "박스플롯":
+                box_plot = sns.boxplot(
+                    data=last_df,
+                    x='delay_group',
+                    y='review_score',
+                    palette=color_palette,
+                    ax=ax1,
+                    showfliers=show_outliers
+                )
+            else:
+                box_plot = sns.violinplot(
+                    data=last_df,
+                    x='delay_group',
+                    y='review_score',
+                    palette=color_palette,
+                    ax=ax1
+                )
+
+            ax1.set_xlabel('배송 지연일 그룹', fontsize=14, fontweight='bold', labelpad=15)
+            ax1.set_ylabel('리뷰 점수', fontsize=14, fontweight='bold', labelpad=15)
+            ax1.set_title('배송 성과별 고객 만족도 분포', fontsize=18, fontweight='bold', pad=20)
+            ax1.tick_params(axis='x', rotation=20, labelsize=11)
+            ax1.tick_params(axis='y', labelsize=11)
+            ax1.grid(True, linestyle='--', alpha=0.3, color='gray')
+            ax1.set_facecolor('#fafafa')
+
+            # 평균선 추가
+            ax1.axhline(y=last_df['review_score'].mean(), color='red', linestyle='--', alpha=0.7, label='전체 평균')
+            ax1.legend()
+
+            plt.tight_layout()
+            st.pyplot(fig1)
+
+        # 인사이트 박스
+        col1, col2 = st.columns(2)
+        with col1:
+            early_delivery_score = last_df[last_df['delay_group'].isin(['10일 이상 빠름', '1~9일 빠름'])]['review_score'].mean()
+            st.info(f"🚀 **빠른 배송 그룹 평균 점수**: {early_delivery_score:.2f}")
+
+        with col2:
+            late_delivery_score = last_df[last_df['delay_group'].isin(['6~10일 지연', '10일 이상 지연'])]['review_score'].mean()
+            st.warning(f"⚠️ **지연 배송 그룹 평균 점수**: {late_delivery_score:.2f}")
+
+        st.markdown("---")
+
+        # 두 번째 차트 섹션
+        st.markdown("""
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h2 style="color: #2c3e50; margin-bottom: 15px;">💎 고객 충성도별 설문 참여도 분석</h2>
+            <p style="color: #7f8c8d;">RFM 점수 구간별 설문 응답 소요시간을 비교해보세요</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 두 번째 차트 옵션
+        chart2_col1, chart2_col2 = st.columns([3, 1])
+
+        with chart2_col2:
+            st.markdown("#### 차트 설정")
+            show_outliers2 = st.checkbox("이상치 표시", value=True, key="outliers2")
+            color_palette2 = st.selectbox(
+                "색상 테마",
+                ["Set3", "viridis", "husl", "Set2", "pastel"],
+                index=0,
+                key="palette2"
+            )
+            show_mean = st.checkbox("평균선 표시", value=True)
+
+        with chart2_col1:
+            fig2, ax2 = plt.subplots(figsize=(14, 8))
+
+            box_plot2 = sns.boxplot(
+                x='RFM_score_bin',
+                y='response_time',
+                data=last_df,
+                palette=color_palette2,
+                ax=ax2,
+                showfliers=show_outliers2
+            )
+
+            ax2.set_xlabel('RFM 점수 구간 (0: 낮음 ~ 4: 높음)', fontsize=14, fontweight='bold', labelpad=15)
+            ax2.set_ylabel('설문응답 소요시간 (초)', fontsize=14, fontweight='bold', labelpad=15)
+            ax2.set_title('고객 충성도별 설문 참여도 분석', fontsize=18, fontweight='bold', pad=20)
+            ax2.tick_params(axis='both', labelsize=12)
+            ax2.grid(True, linestyle='--', alpha=0.3, color='gray')
+            ax2.set_facecolor('#fafafa')
+
+            if show_mean:
+                ax2.axhline(y=last_df['response_time'].mean(), color='red', linestyle='--', alpha=0.7, label='전체 평균')
+                ax2.legend()
+
+            plt.tight_layout()
+            st.pyplot(fig2)
+
+        # 통계 정보 표시
+        st.markdown("#### 📈 주요 통계 정보")
+
+        stats_col1, stats_col2, stats_col3 = st.columns(3)
+
+        with stats_col1:
+            correlation = last_df['RFM_score_bin'].corr(last_df['response_time'])
+            st.metric(
+                label="RFM-응답시간 ",
+                value=f"{correlation:.3f}",
+                delta="상관관계 강도"
+            )
+
+        with stats_col2:
+            high_rfm_avg_time = last_df[last_df['RFM_score_bin'] >= 3]['response_time'].mean()
+            st.metric(
+                label="고충성 고객 평균 응답시간",
+                value=f"{high_rfm_avg_time:.0f}초",
+                delta=f"{high_rfm_avg_time - avg_response_time:.0f}1 초 차이"
+            )
+
+        with stats_col3:
+            low_rfm_avg_time = last_df[last_df['RFM_score_bin'] <= 1]['response_time'].mean()
+            st.metric(
+                label="저충성 고객 평균 응답시간",
+                value=f"{low_rfm_avg_time:.0f}초",
+                delta=f"{low_rfm_avg_time - avg_response_time:.0f}1 초 차이"
+            )
+
+        # 데이터 테이블 (선택사항)
+        with st.expander("📋 상세 데이터 보기"):
+            st.markdown("#### 배송 그룹별 통계")
+            delay_stats = last_df.groupby('delay_group').agg({
+                'review_score': ['mean', 'std', 'count'],
+                'response_time': ['mean', 'std']
+            }).round(2)
+            st.dataframe(delay_stats, use_container_width=True)
+
+            st.markdown("#### RFM 점수별 통계")
+            rfm_stats = last_df.groupby('RFM_score_bin').agg({
+                'review_score': ['mean', 'std', 'count'],
+                'response_time': ['mean', 'std']
+            }).round(2)
+            st.dataframe(rfm_stats, use_container_width=True)
+
+        # 푸터
+        st.markdown("""
+        <div style="text-align: center; padding: 20px; margin-top: 40px; 
+                    background: #ecf0f1; border-radius: 10px;">
+            <p style="color: #7f8c8d; margin: 0;">
+                💡 <strong>인사이트</strong>: 배송 성과가 높을수록 고객만족도가 높았습니다 
+                RFM분석결과 고충성고객이 설문응답시간이 짧았습니다
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
 # Footer
 st.markdown("---")
 html_footer = """
