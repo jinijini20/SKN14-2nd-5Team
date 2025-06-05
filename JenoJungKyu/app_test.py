@@ -47,7 +47,7 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     try:
-        with open('models/best_model.pkl', 'rb') as f:
+        with open('models/XGBoost_final.pkl', 'rb') as f:
             data = pickle.load(f)
 
         # data가 튜플인지 확인 후 처리
@@ -77,6 +77,8 @@ FEATURE_COLUMNS = [
     'approval_days',
     'review_flag',
     'review_length',
+    'review_score',
+    'response_time',
     'order_status_binary',
     'category_num',
 ]
@@ -369,13 +371,20 @@ elif dashboard_mode == "예측":
             input_values['delay_days'] = st.number_input(
                 "⏳ 배송 지연 일수",
                 value=0.0,
-                help="예정 배송일 대비 지연된 일수",
-                min_value=0.0
+                help="예정 배송일 대비 지연된 일수"
             )
             input_values['review_flag'] = st.selectbox(
                 "📝 리뷰 작성 여부",
                 [0, 1],
                 help="0: 미작성, 1: 작성"
+            )
+            input_values['review_score'] = st.slider(
+                "⭐ 리뷰 점수",
+                min_value=1.0,
+                max_value=5.0,
+                value=5.0,
+                step=0.1,
+                help="고객이 남긴 리뷰 평점 (1~5)"
             )
 
         with col2:
@@ -395,6 +404,12 @@ elif dashboard_mode == "예측":
                 "📏 리뷰 길이",
                 value=0.0,
                 help="작성된 리뷰의 문자 수",
+                min_value=0.0
+            )
+            input_values['response_time'] = st.number_input(
+                "⏱️ 응답 시간 (초)",
+                value=0.0,
+                help="설문 응답까지 걸린 시간",
                 min_value=0.0
             )
 
@@ -430,14 +445,33 @@ elif dashboard_mode == "예측":
 
         if predict_button:
             try:
-                input_df = pd.DataFrame([input_values], columns=features)
-                prediction = model.predict(input_df)[0]
-                prediction_proba = model.predict_proba(input_df)[0] if hasattr(model, 'predict_proba') else None
+                input_df = pd.DataFrame([{k: input_values[k] for k in features}])
+                prediction_proba = model.predict_proba(input_df)[0]
+
+                churn_prob = prediction_proba[1]  # 이탈 확률
+                threshold = 0.4  # 사용자가 정할 수 있는 기준 값
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                if prediction == 1:
-                    st.markdown("""
+                if churn_prob >= threshold:
+                    st.markdown(f"""
+                        <div style='
+                            background: linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%);
+                            padding: 2rem;
+                            border-radius: 15px;
+                            text-align: center;
+                            color: white;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            margin: 1rem 0;
+                        '>
+                            <h2 style='margin: 0; font-size: 2rem;'>⚠️ 이탈 위험!</h2>
+                            <p style='margin: 0.5rem 0 0 0; font-size: 1.2rem; opacity: 0.9;'>
+                                고객 유지 전략이 필요합니다
+                            </p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
                         <div style='
                             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
                             padding: 2rem;
@@ -454,43 +488,25 @@ elif dashboard_mode == "예측":
                         </div>
                     """, unsafe_allow_html=True)
                     st.balloons()
-                else:
-                    st.markdown("""
-                        <div style='
-                            background: linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%);
-                            padding: 2rem;
-                            border-radius: 15px;
-                            text-align: center;
-                            color: white;
-                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                            margin: 1rem 0;
-                        '>
-                            <h2 style='margin: 0; font-size: 2rem;'>⚠️ 이탈 위험!</h2>
-                            <p style='margin: 0.5rem 0 0 0; font-size: 1.2rem; opacity: 0.9;'>
-                                고객 유지 전략이 필요합니다
-                            </p>
-                        </div>
-                    """, unsafe_allow_html=True)
 
-                # 확률 정보가 있다면 표시
-                if prediction_proba is not None:
-                    churn_prob = prediction_proba[1] * 100
-                    st.markdown(f"""
-                        <div style='
-                            background: #f8f9fa;
-                            padding: 1rem;
-                            border-radius: 10px;
-                            text-align: center;
-                            margin: 1rem 0;
-                        '>
-                            <h4 style='color: #495057; margin: 0;'>
-                                이탈 위험도: {churn_prob:.1f}%
-                            </h4>
-                        </div>
-                    """, unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style='
+                        background: #f8f9fa;
+                        padding: 1rem;
+                        border-radius: 10px;
+                        text-align: center;
+                        margin: 1rem 0;
+                    '>
+                        <h4 style='color: #495057; margin: 0;'>
+                            이탈 위험도: {churn_prob * 100:.1f}%
+                        </h4>
+                        <small style='color: #868e96;'>기준: {threshold * 100:.0f}% 이상이면 이탈로 판단</small>
+                    </div>
+                """, unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"❌ 예측 중 오류가 발생했습니다: {e}")
+
 
 
 elif dashboard_mode == "분석":
