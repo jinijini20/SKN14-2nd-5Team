@@ -32,7 +32,7 @@ last_df['delay_group'] = pd.cut(
 
 # Page configuration
 st.set_page_config(
-    page_title="데이터 사피엔스",
+    page_title="5li5li",
     page_icon="🧊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -159,97 +159,70 @@ if dashboard_mode == "개요":
 - 최근 이커머스 시장의 경쟁이 심화되면서 기존 고객 유지가 점점 더 중요해지고 있습니다.
 - 데이터를 기반으로 고객의 행동을 분석하고 이탈 가능성을 사전에 예측함으로써, 맞춤형 마케팅 전략 수립이 가능합니다.
 - 상품의 가격, 무게, 부피 등 제품 특성과 고객 행동 간의 관계를 분석함으로써, 제품 구성 전략 및 물류 최적화에 도움이 됩니다.
-  
-### 🎯 프로젝트 목표
-- 고객의 재구매 여부를 정의하고 분류하는 기준을 수립합니다.
 
-- 고객의 이탈을 판단하는 기준을 설정하고 이에 따라 분석을 진행합니다.
-
-- 제품 속성(가격, 무게, 부피,배송송 등)과 고객의 행동 간 상관관계를 분석합니다.
-
-- 분석 결과를 시각화하고 인사이트를 도출하여 실질적인 개선 방안을 제시합니다.
-
-### 🎈 프로젝트 기대효과
--재구매 고객의 특징을 파악하여 고객 충성도를 높이는 전략 수립이 가능합니다.
-- 이탈 가능성이 높은 고객을 조기 식별하여 사전에 대응할 수 있습니다.
-- 상품 가격대별 이탈률 및 무게·부피 등의 물류 관련 특성 분석을 통해 제품 전략 및 배송 정책 개선이 기대됩니다.
-
-## 📊 데이터 소개
-
-해당 프로젝트에 사용된 데이터는 브라질 이커머스 플랫폼 Olist의 약 10만 건 이상의 주문 데이터를 포함한 공개 데이터셋입니다
-
-### Olist  데이터
-| 테이블명               | 주요 컬럼                                                              | 설명             |
-| ------------------ | ------------------------------------------------------------------ | -------------- |
-| `orders_df`        | order\_id, customer\_id, order\_status, order\_purchase\_timestamp | 고객의 주문 정보      |
-| `customers_df`     | customer\_id, customer\_unique\_id                                 | 고객 고유 식별 정보    |
-| `order_items_df`   | order\_id, product\_id, price, freight\_value 등                    | 주문 내 포함된 상품 정보 |
-| `products_df`      | product\_id, product\_category\_name, product\_weight\_g 등         | 제품 관련 상세 정보    |
-| `order_reviews_df` | order\_id, review\_score                                           | 고객 리뷰 및 만족도 정보 |
+### 📊 Business 예측탭과분석탭의 사용가이드
+| Feature               | 설명                       |
+| --------------------- | ------------------------ |
+| `Frequency`           | 고객의 총 구매 횟수              |
+| `Monetary`            | 총 구매 금액                  |
+| `delay_days`          | 배송 지연 일수                 |
+| `total_days`          | 주문부터 완료까지 소요 일수          |
+| `approval_days`       | 주문 승인까지 걸린 일수            |
+| `review_flag`         | 리뷰 작성 여부 (0: 미작성, 1: 작성) |
+| `review_length`       | 작성한 리뷰의 문자 수             |
+| `review_score`        | 리뷰 평점 (1\~5점)            |
+| `response_time`       | 고객 문의 응답까지 걸린 시간         |
+| `order_status_binary` | 주문 상태 (0: 미완료, 1: 완료)    |
+| `category_num`        | 상품 카테고리 번호 (카테고리별 군집화)   |
+위의 하이퍼 파라미터 넣고 예측을 누르면 XG부스트로 고객이탈을 예측합니다
 
 
----
+### 1️⃣ Order 탭 - 주문 분석
+주요 차트
 
-## 🛠️ 기술 스택
-- **언어**
-![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
+월별 매출 추이: 재구매 고객 vs 이탈 고객의 매출 변화
+주문 패턴 분석: 주문수(막대)와 AOV(선그래프) 복합 차트
+인기 카테고리: 고객 유형별 상위 5개 카테고리 파이차트
 
-- **데이터 분석**
-![Pandas](https://img.shields.io/badge/Pandas-Data%20Analysis-150458?logo=pandas)
-![NumPy](https://img.shields.io/badge/NumPy-Scientific%20Computing-013243?logo=numpy)
+핵심 인사이트
 
-- **머신러닝**
-![Scikit-learn](https://img.shields.io/badge/Scikit--learn-ML-F7931E?logo=scikit-learn)
-![XGBoost](https://img.shields.io/badge/XGBoost-Boosting-EC0000?logo=xgboost)
-![LightGBM](https://img.shields.io/badge/LightGBM-Boosting-9ACD32?logo=lightgbm)
+2017년 11월 이후 재구매 고객 매출 급증
+서비스 활성화 시점 파악 가능
 
-- **데이터 시각화**
-![Matplotlib](https://img.shields.io/badge/Matplotlib-Visualization-11557C?logo=matplotlib)
-![Seaborn](https://img.shields.io/badge/Seaborn-Statistical%20Plots-00CED1?logo=seaborn)
+### #️⃣ Delivery 탭 - 배송 분석
+주요 차트
 
-- **데이터 균형화**
-![SMOTE](https://img.shields.io/badge/SMOTE-Data%20Balancing-FF69B4)
+주문 상태별 이탈 분포: 배송 상태에 따른 이탈 고객 비율
+배송 지연 이탈률: 정시배송 vs 지연배송 이탈률 비교
+배송 소요 기간별 이탈률: 7일 단위로 구간화한 이탈률 추이
 
-- **모델 해석**
-![SHAP](https://img.shields.io/badge/SHAP-Model%20Explainability-FF4500)
+핵심 발견
 
-- **개발 환경**
-![Google Colab](https://img.shields.io/badge/Google%20Colab-Cloud-F9AB00?logo=googlecolab)
-![VS Code](https://img.shields.io/badge/VS%20Code-IDE-007ACC?logo=visualstudiocode)
+배송 지연 시 이탈률 증가
+배송 시간이 고객 유지의 핵심 요소
 
-- **비전 관리**
-![Git](https://img.shields.io/badge/Git-Version--Control-F05032?logo=git)
-![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)
+### Review 탭 - 고객 만족도 분석
+주요 기능
 
----
+핵심 지표 카드: 평균 리뷰점수, 정시배송률, 응답시간, 고충성고객 비율
+배송 성과별 만족도: 배송 지연 정도에 따른 리뷰 점수 분포
+고객 충성도별 참여도: RFM 점수별 설문 응답 시간 분석
 
-## 분석 방법론
-1. **데이터 전처리**
-   - 불필요한 컬럼(User_ID, Name) 제거
-   - 음수 월소득 데이터 제거
-   - 마지막 로그인(Last_Login) 날짜를 현재 기준 경과 일수로 변환
-   - 30일 이상 로그인하지 않은 사용자 이탈 식별(month_churn)
-   - 범주형 변수 Label Encoding
+인터랙티브 기능
 
-2. **데이터 불균형 처리**
-   - SMOTE를 활용한 소수 클래스 오버샘플링
-   - 학습 데이터와 테스트 데이터 분리(80:20)
+차트 스타일 선택 (박스플롯/바이올린플롯)
+색상 테마 변경
+이상치 표시 옵션
 
-3. **특성 표준화**
-   - StandardScaler를 통한 수치형 데이터 정규화
 
-4. **모델링 및 하이퍼파라미터 튜닝**
-   - 로지스틱 회귀(LogisticRegression)
-     - C, penalty, solver 파라미터 튜닝
-   - 랜덤 포레스트(RandomForestClassifier)
-     - n_estimators, max_depth, min_samples_split, max_features 파라미터 튜닝
-   - XGBoost(XGBClassifier)
-     - n_estimators, learning_rate, max_depth, subsample, colsample_bytree 파라미터 튜닝
-   - LightGBM(LGBMClassifier)
-     - num_leaves, learning_rate, n_estimators, feature_fraction 파라미터 튜닝
-   - GridSearchCV를 통한 최적 파라미터 탐색.
+### 🎮 사용 방법
 
-        ---
+탭 선택: 분석하고 싶은 영역의 탭 클릭
+차트 상호작용: 차트 위에 마우스를 올려 상세 정보 확인
+설정 조정: Review 탭에서 차트 스타일과 색상 커스터마이징
+인사이트 확인: 각 섹션의 핵심 발견사항과 통계 정보 검토
+
+
         """, unsafe_allow_html=True)
 
 elif dashboard_mode == "예측":
@@ -515,17 +488,23 @@ elif dashboard_mode == "분석":
     tab1, tab2, tab3 = st.tabs(["Order", "Delivery", "Review"])
 
     with tab1:
-        # 1행: 월별 매출 추이
-        col1 = st.columns(1)[0]
+        # 페이지 헤더
 
-        with col1:
-            st.subheader("월별 매출 추이")
+        st.markdown("""
+                <div style="text-align: center; padding: 20px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+                            border-radius: 10px; margin-bottom: 30px;">
+                    <h1 style="color: white; margin: 0; font-size: 2.5em;">📊 매출 및 고객 분석 대시보드</h1>
+                    <p style="color: white; margin-top: 10px; font-size: 1.2em;">배송 성과와 고객 충성도 인사이트</p>
+                </div>
+                """, unsafe_allow_html=True)
+        # 1행: 월별 매출 추이
+        with st.container():
+            st.markdown("#### 💰 월별 매출 추이")
 
             # 데이터 불러오기
             monthly_stats = pd.read_csv("assets/monthly_stats.csv")
             monthly_stats = monthly_stats.sort_values(['year', 'month'])
-
-            monthly_stats['churn_label'] = monthly_stats['churn'].map({0: '재구매', 1: '이탈'})
+            monthly_stats['churn_label'] = monthly_stats['churn'].map({0: '재구매 고객', 1: '이탈 고객'})
 
             fig_revenue = px.line(
                 monthly_stats,
@@ -534,38 +513,69 @@ elif dashboard_mode == "분석":
                 color='churn_label',
                 labels={
                     'total_revenue': '매출 (원)',
-                    'churn_label': ''
+                    'churn_label': '고객 유형',
+                    'year_month': '기간'
                 },
                 color_discrete_map={
-                    '재구매': '#0066FF',  # 비이탈 고객 - 파란색
-                    '이탈': '#FF0000'  # 이탈 고객 - 빨간색
+                    '재구매 고객': '#2E86AB',  # 차분한 파란색
+                    '이탈 고객': '#E63946'  # 차분한 빨간색
                 }
             )
 
             fig_revenue.update_layout(
                 yaxis_title="매출 (원)",
-                height=400
+                xaxis_title="기간",
+                height=450,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(size=12),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(l=20, r=20, t=40, b=20)
             )
 
-            # x축 레이블 회전
-            fig_revenue.update_xaxes(tickangle=45, title="")
+            # x축 레이블 회전 및 격자 추가
+            fig_revenue.update_xaxes(
+                tickangle=45,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128,128,128,0.2)'
+            )
+            fig_revenue.update_yaxes(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128,128,128,0.2)'
+            )
 
             st.plotly_chart(fig_revenue, use_container_width=True)
 
-        # 2행: 월별 인당 주문금액 & 주문수 복합 그래프
-        col2 = st.columns(1)[0]
+        st.markdown("---")
 
-        with col2:
-            st.subheader("인당 주문금액 / 주문수 추이")
+        # 2행: 월별 인당 주문금액 & 주문수 복합 그래프
+        with st.container():
+            st.markdown("#### 📈 주문 패턴 분석")
+
+            # 메트릭 설명
+            col_desc1, col_desc2 = st.columns(2)
+            with col_desc1:
+                st.markdown("**📊 주문수**: 월별 총 주문 건수")
+            with col_desc2:
+                st.markdown("**💳 AOV**: 평균 주문 금액 (Average Order Value)")
 
             # 데이터 불러오기
             order_counts_by_month = pd.read_csv("assets/order_counts_by_month.csv")
 
-            # 복합 그래프 생성 (subplot 사용)
+            # 복합 그래프 생성
             from plotly.subplots import make_subplots
 
             fig_combo = make_subplots(
-                specs=[[{"secondary_y": True}]]
+                specs=[[{"secondary_y": True}]],
+                subplot_titles=()
             )
 
             # 비이탈 고객 데이터
@@ -582,8 +592,8 @@ elif dashboard_mode == "분석":
                     x=non_churn_orders['year_month'],
                     y=non_churn_orders['order_count'],
                     name='재구매 주문수',
-                    marker_color='#AED6F1',
-                    opacity=0.7
+                    marker_color='rgba(46, 134, 171, 0.7)',
+                    hovertemplate='<b>재구매 고객</b><br>기간: %{x}<br>주문수: %{y:,}건<extra></extra>'
                 ),
                 secondary_y=False,
             )
@@ -593,8 +603,8 @@ elif dashboard_mode == "분석":
                     x=churn_orders['year_month'],
                     y=churn_orders['order_count'],
                     name='이탈 주문수',
-                    marker_color='#F1948A',
-                    opacity=0.7
+                    marker_color='rgba(230, 57, 70, 0.7)',
+                    hovertemplate='<b>이탈 고객</b><br>기간: %{x}<br>주문수: %{y:,}건<extra></extra>'
                 ),
                 secondary_y=False,
             )
@@ -606,8 +616,9 @@ elif dashboard_mode == "분석":
                     y=non_churn_stats['avg_order_value'],
                     mode='lines+markers',
                     name='재구매 AOV',
-                    line=dict(color='#0066FF', width=3),
-                    marker=dict(size=8)
+                    line=dict(color='#2E86AB', width=4),
+                    marker=dict(size=10, symbol='circle'),
+                    hovertemplate='<b>재구매 고객 AOV</b><br>기간: %{x}<br>금액: ₩%{y:,.0f}<extra></extra>'
                 ),
                 secondary_y=True,
             )
@@ -618,104 +629,169 @@ elif dashboard_mode == "분석":
                     y=churn_stats['avg_order_value'],
                     mode='lines+markers',
                     name='이탈 AOV',
-                    line=dict(color='#FF0000', width=3),
-                    marker=dict(size=8)
+                    line=dict(color='#E63946', width=4),
+                    marker=dict(size=10, symbol='circle'),
+                    hovertemplate='<b>이탈 고객 AOV</b><br>기간: %{x}<br>금액: ₩%{y:,.0f}<extra></extra>'
                 ),
                 secondary_y=True,
             )
 
             # y축 레이블 설정
-            fig_combo.update_yaxes(title_text="주문 수", secondary_y=False)
-            fig_combo.update_yaxes(title_text="인당 주문금액 (원)", secondary_y=True)
+            fig_combo.update_yaxes(title_text="주문 건수", secondary_y=False)
+            fig_combo.update_yaxes(title_text="평균 주문금액 (원)", secondary_y=True)
 
             # 레이아웃 설정
             fig_combo.update_layout(
-                height=400,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                height=450,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(size=12),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(l=20, r=20, t=40, b=20),
+                xaxis_title="기간"
             )
 
-            fig_combo.update_xaxes(tickangle=45)
+            fig_combo.update_xaxes(
+                tickangle=45,
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128,128,128,0.2)'
+            )
+            fig_combo.update_yaxes(
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='rgba(128,128,128,0.2)',
+                secondary_y=False
+            )
 
             st.plotly_chart(fig_combo, use_container_width=True)
 
-        # 3행: 카테고리 비율 파이차트 2개 (col3, col4)
+        st.markdown("---")
+
+        # 3행: 카테고리 비율 파이차트
+        st.markdown("#### 🏷️ 인기 카테고리 분석")
+
+        # 설명 텍스트
+        st.markdown("**고객 유형별 상위 5개 인기 카테고리 비교**")
+
         col3, col4 = st.columns(2)
 
-        # col3: churn = 0인 경우 파이차트
+        # 데이터 불러오기
+        data = pd.read_csv("assets/order_counts_by_category.csv")
+
+        # col3: 재구매 고객 파이차트
         with col3:
-            st.subheader("인기  카테고리")
-
-            # 데이터 불러오기
-            data = pd.read_csv("assets/order_counts_by_category.csv")
-
             # churn = 0인 데이터 필터링
             churn_0_data = data[data['churn'] == 0]
-
-            # product_category_name_english별 order_id 고유값 개수 집계
             category_counts_0 = churn_0_data.groupby('product_category_name_english')[
                 'order_id'].nunique().reset_index()
             category_counts_0.columns = ['category', 'order_count']
-
-            # 상위 5개 카테고리 추출 (내림차순 정렬)
             top5_categories_0 = category_counts_0.nlargest(5, 'order_count')
-
-            # 비율 계산
             total_orders_0 = top5_categories_0['order_count'].sum()
             top5_categories_0['ratio'] = top5_categories_0['order_count'] / total_orders_0
-
-            # 비율 순으로 정렬 (내림차순)
             top5_categories_0 = top5_categories_0.sort_values('ratio', ascending=False)
 
             # 파이차트 생성
-            fig_0 = px.pie(top5_categories_0,
-                           values='ratio',
-                           names='category',
-                           title="재구매: Top 5 카테고리",
-                           color_discrete_sequence=px.colors.qualitative.Set3)
-            # 시계방향 배치 설정
-            fig_0.update_traces(direction='clockwise', sort=False)
+            fig_0 = px.pie(
+                top5_categories_0,
+                values='ratio',
+                names='category',
+                title="<b>🔄 재구매 고객</b>",
+                color_discrete_sequence=['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#6A994E']
+            )
+
+            fig_0.update_traces(
+                textposition='inside',
+                textinfo='percent+label',
+                hovertemplate='<b>%{label}</b><br>비율: %{percent}<br>주문수: %{value:.0%}<extra></extra>',
+                direction='clockwise',
+                sort=False
+            )
+
+            fig_0.update_layout(
+                height=400,
+                font=dict(size=11),
+                showlegend=False,
+                title_x=0.5,
+                margin=dict(l=20, r=20, t=60, b=20)
+            )
 
             st.plotly_chart(fig_0, use_container_width=True)
 
-        # col4: churn = 1인 경우 파이차트
+        # col4: 이탈 고객 파이차트
         with col4:
-            st.subheader(" ")
-
             # churn = 1인 데이터 필터링
             churn_1_data = data[data['churn'] == 1]
-
-            # product_category_name_english별 order_id 고유값 개수 집계
             category_counts_1 = churn_1_data.groupby('product_category_name_english')[
                 'order_id'].nunique().reset_index()
             category_counts_1.columns = ['category', 'order_count']
-
-            # 상위 5개 카테고리 추출 (내림차순 정렬)
             top5_categories_1 = category_counts_1.nlargest(5, 'order_count')
-
-            # 비율 계산
             total_orders_1 = top5_categories_1['order_count'].sum()
             top5_categories_1['ratio'] = top5_categories_1['order_count'] / total_orders_1
-
-            # 비율 순으로 정렬 (내림차순)
             top5_categories_1 = top5_categories_1.sort_values('ratio', ascending=False)
 
             # 파이차트 생성
-            fig_1 = px.pie(top5_categories_1,
-                           values='ratio',
-                           names='category',
-                           title="이탈: Top 5 카테고리",
-                           color_discrete_sequence=px.colors.qualitative.Set1)
+            fig_1 = px.pie(
+                top5_categories_1,
+                values='ratio',
+                names='category',
+                title="<b>⚠️ 이탈 고객</b>",
+                color_discrete_sequence=['#E63946', '#F77F00', '#FCBF49', '#EAE2B7', '#D62828']
+            )
 
-            # 시계방향 배치 설정
-            fig_1.update_traces(direction='clockwise', sort=False)
+            fig_1.update_traces(
+                textposition='inside',
+                textinfo='percent+label',
+                hovertemplate='<b>%{label}</b><br>비율: %{percent}<br>주문수: %{value:.0%}<extra></extra>',
+                direction='clockwise',
+                sort=False
+            )
+
+            fig_1.update_layout(
+                height=400,
+                font=dict(size=11),
+                showlegend=False,
+                title_x=0.5,
+                margin=dict(l=20, r=20, t=60, b=20)
+            )
 
             st.plotly_chart(fig_1, use_container_width=True)
 
-    with tab2:
-        st.markdown("#### 📦 Delivery Distribution")
+        # 인사이트 섹션
+        st.markdown("---")
 
-        col1 = st.columns(1)[0]
+        with st.expander("💡 **주요 인사이트**", expanded=False):
+            col_insight1, col_insight2 = st.columns(2)
+
+            with col_insight1:
+                st.markdown("""
+                **📈 📌주문 관련 Insight
+2017년 11월 이후 재구매 고객 매출이 급증함
+2017년 11월을 기점으로 서비스가 활성화 된 것으로 추정됨
+                """)
+
+
+
+    with tab2:
+        st.markdown("""
+                <div style="text-align: center; padding: 20px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+                            border-radius: 10px; margin-bottom: 30px;">
+                    <h1 style="color: white; margin: 0; font-size: 2.5em;">📦 배송 분석 대시보드</h1>
+                    <p style="color: white; margin-top: 10px; font-size: 1.2em;">배송 성과와 고객 충성도 인사이트</p>
+                </div>
+                """, unsafe_allow_html=True)
+        # 상단 행: 주문 상태별 분포와 배송 지연 분석
+        col1, col2 = st.columns([1, 1])
+
         with col1:
+            st.markdown("##### 📋 주문 상태별 이탈 분포")
+
             # csv 파일 읽기
             order_churn = pd.read_csv('data/order_churn.csv')
 
@@ -725,31 +801,29 @@ elif dashboard_mode == "분석":
 
             # Altair 그래프 생성
             chart = alt.Chart(chart_data).mark_bar().encode(
-                x=alt.X('order_status:N', title='배송 상태', sort=sort, axis=alt.Axis(labelAngle=0)),
-                y=alt.Y('count:Q', title='count'),
-                color=alt.Color('churn_str:N', title='이탈 여부', scale=alt.Scale(scheme='redblue'),
-                                legend=alt.Legend(title=None)),
-                xOffset='churn_str:N',  # legend 표시
-                tooltip=['order_status', 'churn_str', 'count']
+                x=alt.X('order_status:N', title='배송 상태', sort=sort, axis=alt.Axis(labelAngle=-45)),
+                y=alt.Y('count:Q', title='건수'),
+                color=alt.Color('churn_str:N', title='이탈 여부',
+                                scale=alt.Scale(range=['#2E86AB', '#A23B72']),
+                                legend=alt.Legend(orient='top', titleFontSize=12, labelFontSize=11)),
+                xOffset='churn_str:N',
+                tooltip=['order_status:N', 'churn_str:N', 'count:Q']
             ).properties(
-                width=90,
-                height=400,
-                title='주문 상태별 이탈 분포'
+                width='container',
+                height=350
+            ).resolve_scale(
+                color='independent'
             )
 
-            # Streamlit에 출력
             st.altair_chart(chart, use_container_width=True)
 
-        col2 = st.columns(1)[0]
         with col2:
-            # 배송 지연일에 따른 이탈 분포
+            st.markdown("##### ⏰ 배송 지연에 따른 이탈률")
+
             # csv 파일 읽기
             model_df = pd.read_csv('data/model_df.csv')
 
             # 배송지연 여부에 따른 이탈 재주문
-            # 배송지연 (배송완료일 - 예상일)
-            # delay_days > 0: 지연 배송
-            # delay_days <= 0: 조기 배송
             prop_df = (
                 model_df.groupby(model_df['delay_days'] > 0)['churn']
                 .value_counts(normalize=True)
@@ -758,66 +832,118 @@ elif dashboard_mode == "분석":
             )
 
             # 전처리: 텍스트용 컬럼 추가
-            prop_df['배송 지연 여부'] = prop_df['delay_days'].map({False: '정상', True: '지연'})
+            prop_df['배송 지연 여부'] = prop_df['delay_days'].map({False: '정시/조기', True: '지연'})
             prop_df['이탈 여부'] = prop_df['churn'].map({0: '재주문', 1: '이탈'})
 
             # Altair 시각화
             chart = alt.Chart(prop_df).mark_bar().encode(
-                x=alt.X('배송 지연 여부:N', title='배송 지연 여부', axis=alt.Axis(labelAngle=0)),
-                y=alt.Y('proportion:Q', title='이탈률'),
-                color=alt.Color('이탈 여부:N', scale=alt.Scale(scheme='redblue'), legend=alt.Legend(title=None)),
+                x=alt.X('배송 지연 여부:N', title='배송 상황', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('proportion:Q', title='비율', axis=alt.Axis(format='.0%')),
+                color=alt.Color('이탈 여부:N',
+                                scale=alt.Scale(range=['#2E86AB', '#A23B72']),
+                                legend=alt.Legend(orient='top', titleFontSize=12, labelFontSize=11)),
                 xOffset='이탈 여부:N',
-                tooltip=['배송 지연 여부', '이탈 여부', alt.Tooltip('proportion', format='.2%')]
+                tooltip=['배송 지연 여부:N', '이탈 여부:N',
+                         alt.Tooltip('proportion:Q', format='.1%', title='비율')]
             ).properties(
-                width=300,
-                height=400,
-                title='배송 지연 여부에 따른 이탈률 분포'
+                width='container',
+                height=350
             )
 
-            # 출력
             st.altair_chart(chart, use_container_width=True)
 
-        col3 = st.columns(1)[0]
-        with col3:
-            # 배송 소요일에 따른 이탈 분포
-            # 7일 단위로 구간화
-            bin_width = 7
-            max_day = int(np.ceil(model_df['total_days'].max()))
-            bins = np.arange(0, max_day + bin_width, bin_width)
-            model_df['days_bin'] = pd.cut(model_df['total_days'], bins=bins, right=False)
+        # 구분선 추가
+        st.markdown("---")
 
-            # 각 bin 이탈률(%) 계산
-            bin_churn = (
-                model_df
-                .groupby('days_bin', observed=True)['churn']
-                .mean()
-                .mul(100)
-                .reset_index()
+        # 하단 행: 배송 소요일별 이탈률 (전체 너비 사용)
+        st.markdown("##### 📅 배송 소요 기간별 이탈률 추이")
+
+        # 배송 소요일에 따른 이탈 분포
+        # 7일 단위로 구간화
+        bin_width = 7
+        max_day = int(np.ceil(model_df['total_days'].max()))
+        bins = np.arange(0, max_day + bin_width, bin_width)
+        model_df['days_bin'] = pd.cut(model_df['total_days'], bins=bins, right=False)
+
+        # 각 bin 이탈률(%) 계산
+        bin_churn = (
+            model_df
+            .groupby('days_bin', observed=True)['churn']
+            .mean()
+            .mul(100)
+            .reset_index()
+        )
+        bin_churn['배송 소요일'] = bin_churn['days_bin'].apply(lambda x: int(x.left + bin_width / 2))
+
+        # 전체 평균 이탈률 계산
+        avg_churn_rate = model_df['churn'].mean() * 100
+
+        # Altair 시각화
+        bars = alt.Chart(bin_churn).mark_bar(
+            color='#F4A580',
+            opacity=0.8,
+            stroke='#E8956B',
+            strokeWidth=1
+        ).encode(
+            x=alt.X('배송 소요일:O', title='배송 소요일 (7일 단위 중심값)',
+                    axis=alt.Axis(labelAngle=0, titleFontSize=12)),
+            y=alt.Y('churn:Q', title='이탈률 (%)',
+                    axis=alt.Axis(titleFontSize=12, format='.1f')),
+            tooltip=[
+                alt.Tooltip('배송 소요일:O', title='배송 소요일'),
+                alt.Tooltip('churn:Q', title='이탈률 (%)', format='.2f')
+            ]
+        )
+
+        # 전체 평균 이탈률 선 추가
+        mean_line = alt.Chart(pd.DataFrame({'평균 이탈률': [avg_churn_rate]})).mark_rule(
+            color='#D32F2F',
+            strokeDash=[8, 4],
+            strokeWidth=2
+        ).encode(
+            y=alt.Y('평균 이탈률:Q'),
+            tooltip=[alt.Tooltip('평균 이탈률:Q', format='.2f', title='전체 평균 이탈률 (%)')]
+        )
+
+        # 평균선 텍스트 라벨
+        mean_text = alt.Chart(pd.DataFrame({
+            'x': [bin_churn['배송 소요일'].max() * 0.8],
+            'y': [avg_churn_rate + 2],
+            'text': [f'전체 평균: {avg_churn_rate:.1f}%']
+        })).mark_text(
+            align='center',
+            fontSize=11,
+            color='#D32F2F',
+            fontWeight='bold'
+        ).encode(
+            x='x:Q',
+            y='y:Q',
+            text='text:N'
+        )
+
+        final_chart = (bars + mean_line + mean_text).properties(
+            width='container',
+            height=400,
+            title=alt.TitleParams(
+                text='배송 소요 기간에 따른 이탈률 변화',
+                fontSize=14,
+                anchor='start'
             )
-            bin_churn['배송 소요일'] = bin_churn['days_bin'].apply(lambda x: int(x.left + bin_width / 2))
+        ).resolve_scale(
+            y='shared'
+        )
 
-            # Altair 시각화
-            chart = alt.Chart(bin_churn).mark_bar(color='orange').encode(
-                x=alt.X('배송 소요일:O', title='배송 소요일(일) - 7일 단위', axis=alt.Axis(labelAngle=0)),
-                y=alt.Y('churn:Q', title='이탈률 (%)'),
-                color=alt.value('#F4A580'),
-                tooltip=[
-                    alt.Tooltip('배송 소요일:O', title='배송 소요일(중심값)'),
-                    alt.Tooltip('churn:Q', title='이탈률 (%)', format='.2f')
-                ]
-            ).properties(
-                width=700,
-                height=400,
-                title='배송 소요 기간에 따른 이탈률 변화'
+        st.altair_chart(final_chart, use_container_width=True)
+
+
+
+        # 간단한 텍스트 인사이트
+        st.info(
+                "📈 **핵심 발견사항:** "
+                "배송이 지연될수록 고객 이탈률이 증가하는 경향을 보입니다. "
+                "특히 배송 소요일이 길어질수록 이탈률이 평균보다 높아지므로, "
+                "배송 시간 단축이 고객 유지에 중요한 요소임을 알 수 있습니다."
             )
-
-            # 전체 평균 이탈률 선 추가
-            mean_line = alt.Chart(pd.DataFrame({'y': [model_df['churn'].mean() * 100]})).mark_rule(
-                color='red', strokeDash=[5, 5]
-            ).encode(y='y:Q')
-
-            # Step 6: Streamlit에 출력
-            st.altair_chart(chart + mean_line, use_container_width=True)
 
     with tab3:
         # 데이터 불러오기
@@ -837,7 +963,7 @@ elif dashboard_mode == "분석":
         st.markdown("""
         <div style="text-align: center; padding: 20px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 10px; margin-bottom: 30px;">
-            <h1 style="color: white; margin: 0; font-size: 2.5em;">📊 고객 만족도 분석 대시보드</h1>
+            <h1 style="color: white; margin: 0; font-size: 2.5em;">📊 고객 만족도 리뷰분석 대시보드</h1>
             <p style="color: white; margin-top: 10px; font-size: 1.2em;">배송 성과와 고객 충성도 인사이트</p>
         </div>
         """, unsafe_allow_html=True)
@@ -865,7 +991,7 @@ elif dashboard_mode == "분석":
             avg_response_time = last_df['response_time'].mean()
             st.metric(
                 label="평균 응답시간",
-                value=f"{avg_response_time:.0f}초",
+                value=f"{avg_response_time:.0f}분",
                 delta=f"{avg_response_time - 60:.0f}초 vs 목표"
             )
 
@@ -1017,16 +1143,16 @@ elif dashboard_mode == "분석":
             high_rfm_avg_time = last_df[last_df['RFM_score_bin'] >= 3]['response_time'].mean()
             st.metric(
                 label="고충성 고객 평균 응답시간",
-                value=f"{high_rfm_avg_time:.0f}초",
-                delta=f"{high_rfm_avg_time - avg_response_time:.0f}1 초 차이"
+                value=f"{high_rfm_avg_time:.0f}분",
+                delta=f"{high_rfm_avg_time - avg_response_time:.0f}1 분 차이"
             )
 
         with stats_col3:
             low_rfm_avg_time = last_df[last_df['RFM_score_bin'] <= 1]['response_time'].mean()
             st.metric(
                 label="저충성 고객 평균 응답시간",
-                value=f"{low_rfm_avg_time:.0f}초",
-                delta=f"{low_rfm_avg_time - avg_response_time:.0f}1 초 차이"
+                value=f"{low_rfm_avg_time:.0f}분",
+                delta=f"{low_rfm_avg_time - avg_response_time:.0f}1 분 차이"
             )
 
         # 데이터 테이블 (선택사항)
