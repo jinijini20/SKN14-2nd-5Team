@@ -36,11 +36,15 @@ Olist 사용자 이탈 예측 및 요인 분석
 
 본 프로젝트는 브라질의 대표적인 이커머스 플랫폼 Olist의 공개 데이터를 활용하여 고객의 구매 행동 분석, 재구매 여부 예측, 그리고 이탈 가능성 탐지 등을 수행함으로써, 고객 관리 전략 수립에 기여하고자 진행되었습니다.
 
-### 🇧🇷 **프로젝트 기획 배경**
+### 🤔 **프로젝트 기획 배경**
 
-![image.png](images/image.png)
+<table>
+  <tr>
+    <td><img src="images/image.png" width="100%"></td>
+    <td><img src="images/image_201.png" width="100%"></td>
+  </tr>
+</table>
 
-![image.png](images/image_201.png)
 
 [](https://www.emerics.org:446/issueDetail.es?brdctsNo=253385&mid=a10200000000&&search_option=&search_keyword=&search_year=&search_month=&search_tagkeyword=&systemcode=06&search_region=&search_area=1&currentPage=7&pageCnt=10)
 
