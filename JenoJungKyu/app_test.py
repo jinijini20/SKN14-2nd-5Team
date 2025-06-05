@@ -21,7 +21,7 @@ st.set_page_config(
     menu_items={
         'Get Help': 'https://www.extremelycoolapp.com/help',
         'Report a bug': "https://www.extremelycoolapp.com/bug",
-        'About': "# 이것은 헤더입니다. 이것은 *매우* 멋진 앱입니다!"
+        'About': "# 헤더입니다."
     }
 )
 
@@ -127,40 +127,110 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🎯 모델 성능")
-    st.metric("정확도", "0.881", delta="0.04")
-    st.metric("F1 점수", "0.933", delta="0.02")
-    st.metric("ROC AUC", "0.794", delta="0.228")
+    st.metric("정확도", "0.73", delta="0.04")
+    st.metric("F1 점수", "0.55", delta="0.02")
+    st.metric("ROC AUC", "0.8", delta="0.228")
 
 # Main Dashboard Content
 if dashboard_mode == "개요":
     st.markdown(
         """
-        ## 프로젝트 개요:
-        - "데이터 사피엔스" 대시보드는 2016년부터 2018년까지 100,000개의 주문을 포함하는 Olist의 이커머스 주문 공개 데이터셋에서 도출한 인사이트를 보여줍니다.
-        - Catboost와 로지스틱 회귀 등의 머신러닝 모델을 활용하여 주문 상태, 체크아웃, 고객 리뷰 등 고객 여정의 다양한 측면에 대한 귀중한 정보를 제공합니다.
-        - 데이터셋은 Olist에 제품을 등록한 판매자들의 세부 정보와 고객 행동 및 인구 통계 데이터를 포함합니다.
+        ### 📝 프로젝트 소개
+본 프로젝트는 브라질의 대표적인 이커머스 플랫폼 Olist의 공개 데이터를 활용하여 고객의 구매 행동 분석, 재구매 여부 예측, 그리고 이탈 가능성 탐지 등을 수행함으로써, 고객 관리 전략 수립에 기여하고자 진행되었습니다.
 
-        ---
+### 🔍 프로젝트 필요성
+- 최근 이커머스 시장의 경쟁이 심화되면서 기존 고객 유지가 점점 더 중요해지고 있습니다.
+- 데이터를 기반으로 고객의 행동을 분석하고 이탈 가능성을 사전에 예측함으로써, 맞춤형 마케팅 전략 수립이 가능합니다.
+- 상품의 가격, 무게, 부피 등 제품 특성과 고객 행동 간의 관계를 분석함으로써, 제품 구성 전략 및 물류 최적화에 도움이 됩니다.
+  
+### 🎯 프로젝트 목표
+- 고객의 재구매 여부를 정의하고 분류하는 기준을 수립합니다.
 
-        ### 사용된 모델:
-        1. **리뷰 점수 예측:**
-           - 모델: 로지스틱 회귀
-           - 설명: 다양한 요인을 기반으로 고객 리뷰 점수를 예측합니다.
+- 고객의 이탈을 판단하는 기준을 설정하고 이에 따라 분석을 진행합니다.
 
-        2. **배송 시간 예측:**
-           - 모델: Catboost
-           - 설명: Olist에서 주문한 상품의 배송 시간을 예측합니다.
+- 제품 속성(가격, 무게, 부피,배송송 등)과 고객의 행동 간 상관관계를 분석합니다.
 
-        ---
+- 분석 결과를 시각화하고 인사이트를 도출하여 실질적인 개선 방안을 제시합니다.
 
-        ### 모델 평가:
-        - **리뷰 점수 예측:**
-          - 평가 지표: 정확도, ROC Auc, F1 점수
-          - 성능: 정확도 0.881%, ROC Auc 점수 0.794, F1 점수 0.933%를 달성했습니다.
+### 🎈 프로젝트 기대효과
+-재구매 고객의 특징을 파악하여 고객 충성도를 높이는 전략 수립이 가능합니다.
+- 이탈 가능성이 높은 고객을 조기 식별하여 사전에 대응할 수 있습니다.
+- 상품 가격대별 이탈률 및 무게·부피 등의 물류 관련 특성 분석을 통해 제품 전략 및 배송 정책 개선이 기대됩니다.
 
-        - **배송 시간 예측:**
-          - 평가 지표: RMSE, R2 점수
-          - 성능: RMSE 1.176, R2 점수 0.983을 달성했습니다.
+## 📊 데이터 소개
+
+해당 프로젝트에 사용된 데이터는 브라질 이커머스 플랫폼 Olist의 약 10만 건 이상의 주문 데이터를 포함한 공개 데이터셋입니다
+
+### Olist  데이터
+| 테이블명               | 주요 컬럼                                                              | 설명             |
+| ------------------ | ------------------------------------------------------------------ | -------------- |
+| `orders_df`        | order\_id, customer\_id, order\_status, order\_purchase\_timestamp | 고객의 주문 정보      |
+| `customers_df`     | customer\_id, customer\_unique\_id                                 | 고객 고유 식별 정보    |
+| `order_items_df`   | order\_id, product\_id, price, freight\_value 등                    | 주문 내 포함된 상품 정보 |
+| `products_df`      | product\_id, product\_category\_name, product\_weight\_g 등         | 제품 관련 상세 정보    |
+| `order_reviews_df` | order\_id, review\_score                                           | 고객 리뷰 및 만족도 정보 |
+
+
+---
+
+## 🛠️ 기술 스택
+- **언어**
+![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)
+
+- **데이터 분석**
+![Pandas](https://img.shields.io/badge/Pandas-Data%20Analysis-150458?logo=pandas)
+![NumPy](https://img.shields.io/badge/NumPy-Scientific%20Computing-013243?logo=numpy)
+
+- **머신러닝**
+![Scikit-learn](https://img.shields.io/badge/Scikit--learn-ML-F7931E?logo=scikit-learn)
+![XGBoost](https://img.shields.io/badge/XGBoost-Boosting-EC0000?logo=xgboost)
+![LightGBM](https://img.shields.io/badge/LightGBM-Boosting-9ACD32?logo=lightgbm)
+
+- **데이터 시각화**
+![Matplotlib](https://img.shields.io/badge/Matplotlib-Visualization-11557C?logo=matplotlib)
+![Seaborn](https://img.shields.io/badge/Seaborn-Statistical%20Plots-00CED1?logo=seaborn)
+
+- **데이터 균형화**
+![SMOTE](https://img.shields.io/badge/SMOTE-Data%20Balancing-FF69B4)
+
+- **모델 해석**
+![SHAP](https://img.shields.io/badge/SHAP-Model%20Explainability-FF4500)
+
+- **개발 환경**
+![Google Colab](https://img.shields.io/badge/Google%20Colab-Cloud-F9AB00?logo=googlecolab)
+![VS Code](https://img.shields.io/badge/VS%20Code-IDE-007ACC?logo=visualstudiocode)
+
+- **비전 관리**
+![Git](https://img.shields.io/badge/Git-Version--Control-F05032?logo=git)
+![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)
+
+---
+
+## 분석 방법론
+1. **데이터 전처리**
+   - 불필요한 컬럼(User_ID, Name) 제거
+   - 음수 월소득 데이터 제거
+   - 마지막 로그인(Last_Login) 날짜를 현재 기준 경과 일수로 변환
+   - 30일 이상 로그인하지 않은 사용자 이탈 식별(month_churn)
+   - 범주형 변수 Label Encoding
+
+2. **데이터 불균형 처리**
+   - SMOTE를 활용한 소수 클래스 오버샘플링
+   - 학습 데이터와 테스트 데이터 분리(80:20)
+
+3. **특성 표준화**
+   - StandardScaler를 통한 수치형 데이터 정규화
+
+4. **모델링 및 하이퍼파라미터 튜닝**
+   - 로지스틱 회귀(LogisticRegression)
+     - C, penalty, solver 파라미터 튜닝
+   - 랜덤 포레스트(RandomForestClassifier)
+     - n_estimators, max_depth, min_samples_split, max_features 파라미터 튜닝
+   - XGBoost(XGBClassifier)
+     - n_estimators, learning_rate, max_depth, subsample, colsample_bytree 파라미터 튜닝
+   - LightGBM(LGBMClassifier)
+     - num_leaves, learning_rate, n_estimators, feature_fraction 파라미터 튜닝
+   - GridSearchCV를 통한 최적 파라미터 탐색.
 
         ---
         """, unsafe_allow_html=True)
@@ -201,7 +271,7 @@ elif dashboard_mode == "예측":
                 color: white;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             '>
-                <h3 style='margin: 0; font-size: 2.5rem;'>88.1%</h3>
+                <h3 style='margin: 0; font-size: 2.5rem;'>73%</h3>
                 <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>🎯 Accuracy</p>
                 <small style='opacity: 0.7;'>+4.0% 개선</small>
             </div>
@@ -217,7 +287,7 @@ elif dashboard_mode == "예측":
                 color: white;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             '>
-                <h3 style='margin: 0; font-size: 2.5rem;'>93.3%</h3>
+                <h3 style='margin: 0; font-size: 2.5rem;'>80.3%</h3>
                 <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>📊 F1 Score</p>
                 <small style='opacity: 0.7;'>+2.0% 개선</small>
             </div>
