@@ -9,7 +9,6 @@ from plotly.subplots import make_subplots
 from streamlit_extras.let_it_rain import rain
 import altair as alt
 
-
 # Page configuration
 st.set_page_config(
     page_title="Olist E-commerce Dashboard",
@@ -344,78 +343,203 @@ elif dashboard_mode == "Analytics":
     tab1, tab2, tab3 = st.tabs(["Order", "Delivery", "Review"])
 
     with tab1:
-        col1, col2 = st.columns(2)
+        # 1행: 월별 매출 추이
+        col1 = st.columns(1)[0]
 
         with col1:
-            order_counts_by_month = pd.read_csv("assets/order_counts_by_month.csv")
+            st.subheader("월별 매출 추이")
 
-            # churn 값을 시각화용 라벨로 변환
-            order_counts_by_month['churn_label'] = order_counts_by_month['churn'].map({0: '재구매', 1: '이탈'})
+            # 데이터 불러오기
+            monthly_stats = pd.read_csv("assets/monthly_stats.csv")
+            monthly_stats = monthly_stats.sort_values(['year', 'month'])
 
-            # 막대그래프 (Churn=0)
-            bar = alt.Chart(order_counts_by_month[order_counts_by_month['churn'] == 0]).mark_bar().encode(
-                x=alt.X('year_month:N', title='날짜', sort=sorted(order_counts_by_month['year_month'].unique().tolist())),
-                y=alt.Y('order_count:Q', title='주문 수'),
-                color=alt.Color('churn_label:N',
-                                scale=alt.Scale(domain=['재구매', '이탈'],
-                                                range=['#1f77b4', '#d62728']),
-                                legend=alt.Legend(title=None)),
-                tooltip=['year_month', 'order_count', 'churn_label']
+            monthly_stats['churn_label'] = monthly_stats['churn'].map({0: '재구매', 1: '이탈'})
+
+            fig_revenue = px.line(
+                monthly_stats,
+                x='year_month',
+                y='total_revenue',
+                color='churn_label',
+                labels={
+                    'year_month': '연도-월',
+                    'total_revenue': '매출 (원)',
+                    'churn_label': ''
+                },
+                color_discrete_map={
+                    '재구매': '#0066FF',  # 비이탈 고객 - 파란색
+                    '이탈': '#FF0000'  # 이탈 고객 - 빨간색
+                }
             )
 
-            # 선그래프 (Churn=1)
-            line = alt.Chart(order_counts_by_month[order_counts_by_month['churn'] == 1]).mark_line(point=True).encode(
-                x='year_month:N',
-                y='order_count:Q',
-                color=alt.Color('churn_label:N',
-                                scale=alt.Scale(domain=['재구매', '이탈'],
-                                                range=['#1f77b4', '#d62728']),
-                                legend=None),  # 범례는 bar 그래프에만
-                tooltip=['year_month', 'order_count', 'churn_label']
+            fig_revenue.update_layout(
+                yaxis_title="매출 (원)",
+                height=400
             )
 
-            # 레이어링
-            chart = (bar + line).properties(
-                width=800,
-                height=400,
-                title='월별 주문 수 추이'
-            )
+            # x축 레이블 회전
+            fig_revenue.update_xaxes(tickangle=45)
 
-            st.altair_chart(chart, use_container_width=True)
+            st.plotly_chart(fig_revenue, use_container_width=True)
+
+        # 2행: 월별 인당 주문금액 & 주문수 복합 그래프
+        col2 = st.columns(1)[0]
 
         with col2:
-            order_counts_by_category = pd.read_csv("assets/order_counts_by_category.csv")
+            st.subheader("인당 주문금액 & 주문수 추이")
 
-            # 1. product_category_name_english별 고유 order_id 수 집계
-            category_order_counts = (
-                order_counts_by_category.groupby('product_category_name_english')['order_id']
-                .nunique()
-                .reset_index(name='unique_order_count')
+            # 데이터 불러오기
+            order_counts_by_month = pd.read_csv("assets/order_counts_by_month.csv")
+
+            # 복합 그래프 생성 (subplot 사용)
+            from plotly.subplots import make_subplots
+
+            fig_combo = make_subplots(
+                specs=[[{"secondary_y": True}]]
             )
 
-            # 2. 상위 10개 추출
-            top10 = category_order_counts.sort_values(by='unique_order_count', ascending=False).head(10)
+            # 비이탈 고객 데이터
+            non_churn_stats = monthly_stats[monthly_stats['churn'] == 0]
+            non_churn_orders = order_counts_by_month[order_counts_by_month['churn'] == 0]
 
-            # 3. 비율(%) 계산
-            top10['percent'] = top10['unique_order_count'] / top10['unique_order_count'].sum() * 100
+            # 이탈 고객 데이터
+            churn_stats = monthly_stats[monthly_stats['churn'] == 1]
+            churn_orders = order_counts_by_month[order_counts_by_month['churn'] == 1]
 
-            # 4. 파이차트 (Altair 원형 그래프는 theta 사용)
-            pie_chart = alt.Chart(top10).mark_arc(innerRadius=50).encode(
-                theta=alt.Theta(field="unique_order_count", type="quantitative"),
-                color=alt.Color(field="product_category_name_english", type="nominal", title="카테고리"),
-                tooltip=[
-                    alt.Tooltip("product_category_name_english", title="카테고리"),
-                    alt.Tooltip("unique_order_count", title="주문 수"),
-                    alt.Tooltip("percent", format=".1f", title="비율 (%)")
-                ]
-            ).properties(
-                width=500,
+            # 주문수 (막대그래프) - 1차 y축
+            fig_combo.add_trace(
+                go.Bar(
+                    x=non_churn_orders['year_month'],
+                    y=non_churn_orders['order_count'],
+                    name='재구매 주문수',
+                    marker_color='#AED6F1',
+                    opacity=0.7
+                ),
+                secondary_y=False,
+            )
+
+            fig_combo.add_trace(
+                go.Bar(
+                    x=churn_orders['year_month'],
+                    y=churn_orders['order_count'],
+                    name='이탈 주문수',
+                    marker_color='#F1948A',
+                    opacity=0.7
+                ),
+                secondary_y=False,
+            )
+
+            # 인당 주문금액 (라인그래프) - 2차 y축
+            fig_combo.add_trace(
+                go.Scatter(
+                    x=non_churn_stats['year_month'],
+                    y=non_churn_stats['avg_order_value'],
+                    mode='lines+markers',
+                    name='재구매 AOV',
+                    line=dict(color='#0066FF', width=3),
+                    marker=dict(size=8)
+                ),
+                secondary_y=True,
+            )
+
+            fig_combo.add_trace(
+                go.Scatter(
+                    x=churn_stats['year_month'],
+                    y=churn_stats['avg_order_value'],
+                    mode='lines+markers',
+                    name='이탈 AOV',
+                    line=dict(color='#FF0000', width=3),
+                    marker=dict(size=8)
+                ),
+                secondary_y=True,
+            )
+
+            # y축 레이블 설정
+            fig_combo.update_yaxes(title_text="주문 수", secondary_y=False)
+            fig_combo.update_yaxes(title_text="인당 주문금액 (원)", secondary_y=True)
+
+            # 레이아웃 설정
+            fig_combo.update_layout(
                 height=400,
-                title="상위 10개 제품 카테고리별 주문 비율"
+                xaxis_title="연도-월",
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
 
-            # 차트 표시
-            st.altair_chart(pie_chart, use_container_width=True)
+            fig_combo.update_xaxes(tickangle=45)
+
+            st.plotly_chart(fig_combo, use_container_width=True)
+
+        # 3행: 카테고리 비율 파이차트 2개 (col3, col4)
+        col3, col4 = st.columns(2)
+
+        # col3: churn = 0인 경우 파이차트
+        with col3:
+            st.subheader("인기  카테고리")
+
+            # 데이터 불러오기
+            data = pd.read_csv("assets/order_counts_by_category.csv")
+
+            # churn = 0인 데이터 필터링
+            churn_0_data = data[data['churn'] == 0]
+
+            # product_category_name_english별 order_id 고유값 개수 집계
+            category_counts_0 = churn_0_data.groupby('product_category_name_english')[
+                'order_id'].nunique().reset_index()
+            category_counts_0.columns = ['category', 'order_count']
+
+            # 상위 5개 카테고리 추출 (내림차순 정렬)
+            top5_categories_0 = category_counts_0.nlargest(5, 'order_count')
+
+            # 비율 계산
+            total_orders_0 = top5_categories_0['order_count'].sum()
+            top5_categories_0['ratio'] = top5_categories_0['order_count'] / total_orders_0
+
+            # 비율 순으로 정렬 (내림차순)
+            top5_categories_0 = top5_categories_0.sort_values('ratio', ascending=False)
+
+            # 파이차트 생성
+            fig_0 = px.pie(top5_categories_0,
+                           values='ratio',
+                           names='category',
+                           title="재구매: Top 5 카테고리",
+                           color_discrete_sequence=px.colors.qualitative.Set3)
+            # 시계방향 배치 설정
+            fig_0.update_traces(direction='clockwise', sort=False)
+
+            st.plotly_chart(fig_0, use_container_width=True)
+
+        # col4: churn = 1인 경우 파이차트
+        with col4:
+            st.subheader(" ")
+
+            # churn = 1인 데이터 필터링
+            churn_1_data = data[data['churn'] == 1]
+
+            # product_category_name_english별 order_id 고유값 개수 집계
+            category_counts_1 = churn_1_data.groupby('product_category_name_english')[
+                'order_id'].nunique().reset_index()
+            category_counts_1.columns = ['category', 'order_count']
+
+            # 상위 5개 카테고리 추출 (내림차순 정렬)
+            top5_categories_1 = category_counts_1.nlargest(5, 'order_count')
+
+            # 비율 계산
+            total_orders_1 = top5_categories_1['order_count'].sum()
+            top5_categories_1['ratio'] = top5_categories_1['order_count'] / total_orders_1
+
+            # 비율 순으로 정렬 (내림차순)
+            top5_categories_1 = top5_categories_1.sort_values('ratio', ascending=False)
+
+            # 파이차트 생성
+            fig_1 = px.pie(top5_categories_1,
+                           values='ratio',
+                           names='category',
+                           title="이탈: Top 5 카테고리",
+                           color_discrete_sequence=px.colors.qualitative.Set1)
+
+            # 시계방향 배치 설정
+            fig_1.update_traces(direction='clockwise', sort=False)
+
+            st.plotly_chart(fig_1, use_container_width=True)
 
     with tab2:
         st.markdown("#### 🗺️ Sales by Brazilian States")
